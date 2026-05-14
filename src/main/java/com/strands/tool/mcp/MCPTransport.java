@@ -14,4 +14,8 @@ public interface MCPTransport {
     List<MCPToolDefinition> listTools();
 
     Map<String, Object> callTool(String name, Map<String, Object> arguments);
+
+    default Map<String, Object> sendRaw(Map<String, Object> request) {
+        throw new UnsupportedOperationException("Raw request not supported by this transport");
+    }
 }

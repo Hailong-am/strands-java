@@ -18,11 +18,17 @@ public class Swarm implements MultiAgent {
 
     private final Map<String, Agent> agents;
     private final String startAgent;
+    private final SharedMemory sharedMemory = new SharedMemory();
 
     public Swarm(Map<String, Agent> agents, String startAgent) {
         this.agents = agents;
         this.startAgent = startAgent;
         registerHandoffTools();
+        registerCoordinationTools();
+    }
+
+    public SharedMemory getSharedMemory() {
+        return sharedMemory;
     }
 
     @Override
@@ -68,6 +74,67 @@ public class Swarm implements MultiAgent {
                 }
             }
         }
+    }
+
+    private void registerCoordinationTools() {
+        AgentTool readMemory = new AgentTool() {
+            @Override
+            public String getToolName() { return "read_shared_memory"; }
+
+            @Override
+            public ToolSpec getToolSpec() {
+                return new ToolSpec(getToolName(), "Read a value from shared working memory",
+                        Map.of("type", "object",
+                                "properties", Map.of("key", Map.of("type", "string", "description", "Key to read")),
+                                "required", List.of("key")));
+            }
+
+            @Override
+            public ToolResult invoke(ToolUse toolUse, ToolContext context) {
+                String key = (String) toolUse.getInput().get("key");
+                Object value = sharedMemory.get(key);
+                return ToolResult.success(toolUse.getToolUseId(),
+                        value != null ? value.toString() : "null");
+            }
+        };
+
+        AgentTool writeMemory = new AgentTool() {
+            @Override
+            public String getToolName() { return "write_shared_memory"; }
+
+            @Override
+            public ToolSpec getToolSpec() {
+                return new ToolSpec(getToolName(), "Write a value to shared working memory",
+                        Map.of("type", "object",
+                                "properties", Map.of(
+                                        "key", Map.of("type", "string", "description", "Key to write"),
+                                        "value", Map.of("type", "string", "description", "Value to store")),
+                                "required", List.of("key", "value")));
+            }
+
+            @Override
+            public ToolResult invoke(ToolUse toolUse, ToolContext context) {
+                String key = (String) toolUse.getInput().get("key");
+                String value = (String) toolUse.getInput().get("value");
+                sharedMemory.put(key, value);
+                return ToolResult.success(toolUse.getToolUseId(), "Stored: " + key);
+            }
+        };
+
+        for (Agent agent : agents.values()) {
+            agent.getToolRegistry().register(readMemory);
+            agent.getToolRegistry().register(writeMemory);
+        }
+    }
+
+    public static class SharedMemory {
+        private final Map<String, Object> data = new java.util.concurrent.ConcurrentHashMap<>();
+
+        public void put(String key, Object value) { data.put(key, value); }
+        public Object get(String key) { return data.get(key); }
+        public void remove(String key) { data.remove(key); }
+        public Map<String, Object> getAll() { return Collections.unmodifiableMap(data); }
+        public void clear() { data.clear(); }
     }
 
     private static class HandoffTool implements AgentTool {

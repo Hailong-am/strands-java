@@ -147,6 +147,20 @@ public class MCPClient implements ToolProvider, AutoCloseable {
         }
     }
 
+    @SuppressWarnings("unchecked")
+    public Map<String, Object> sendRequest(Map<String, Object> request) {
+        if (!connected) {
+            throw new IllegalStateException("MCPClient not connected");
+        }
+        try {
+            CompletableFuture<Map<String, Object>> future = CompletableFuture.supplyAsync(
+                    () -> transport.sendRaw(request), backgroundExecutor);
+            return future.get(60, TimeUnit.SECONDS);
+        } catch (Exception e) {
+            throw new RuntimeException("MCP request failed", e);
+        }
+    }
+
     public String getServerInstructions() {
         return serverInstructions;
     }

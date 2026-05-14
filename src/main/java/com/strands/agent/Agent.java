@@ -78,7 +78,49 @@ public class Agent {
     }
 
     public AgentResult invoke(String prompt) {
-        return invoke(prompt, null);
+        return invoke(prompt, (StreamHandler) null);
+    }
+
+    public AgentResult invoke(Message message) {
+        return invoke(message, null);
+    }
+
+    public AgentResult invoke(Message message, StreamHandler handler) {
+        acquireInvocationLock();
+        cancelled = false;
+        try {
+            String prompt = message.getTextContent();
+            BeforeInvocationEvent beforeInvocation = new BeforeInvocationEvent(this, prompt, messages);
+            hookRegistry.emit(beforeInvocation);
+
+            addMessage(message);
+
+            InvocationState invocationState = new InvocationState();
+            EventLoop eventLoop = new EventLoop(model, toolRegistry, toolExecutor, hookRegistry, systemPrompt);
+
+            EventLoopResult result = eventLoop.run(messages, invocationState, handler);
+
+            conversationManager.applyManagement(this);
+
+            AgentResult agentResult = new AgentResult(result.getStopReason(), result.getMessage(),
+                    result.getMetrics(), state);
+
+            AfterInvocationEvent afterEvent = new AfterInvocationEvent(this);
+            hookRegistry.emit(afterEvent);
+
+            if (afterEvent.isResume() && afterEvent.getResumeInput() != null) {
+                releaseInvocationLock();
+                return invoke(afterEvent.getResumeInput(), handler);
+            }
+
+            return agentResult;
+        } finally {
+            releaseInvocationLock();
+        }
+    }
+
+    public AgentResult invoke(List<ContentBlock> content) {
+        return invoke(new Message(Message.Role.USER, content), null);
     }
 
     public AgentResult invoke(String prompt, StreamHandler handler) {
@@ -169,6 +211,31 @@ public class Agent {
 
     public boolean isCancelled() {
         return cancelled;
+    }
+
+    public void cleanup() {
+        toolRegistry.getAll().values().forEach(tool -> {
+            if (tool instanceof AutoCloseable closeable) {
+                try {
+                    closeable.close();
+                } catch (Exception ignored) {
+                }
+            }
+        });
+    }
+
+    public Iterator<com.strands.types.streaming.StreamEvent> stream(String prompt) {
+        cancelled = false;
+        BeforeInvocationEvent beforeInvocation = new BeforeInvocationEvent(this, prompt, messages);
+        hookRegistry.emit(beforeInvocation);
+        prompt = beforeInvocation.getPrompt();
+
+        Message userMessage = Message.user(prompt);
+        addMessage(userMessage);
+
+        InvocationState invocationState = new InvocationState();
+        EventLoop eventLoop = new EventLoop(model, toolRegistry, toolExecutor, hookRegistry, systemPrompt);
+        return eventLoop.streamEvents(messages, invocationState);
     }
 
     public Snapshot takeSnapshot() {

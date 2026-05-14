@@ -72,6 +72,22 @@ public class EventLoop {
 
             messages.add(result.getMessage());
 
+            if (result.getStopReason() == StopReason.MAX_TOKENS) {
+                Message recovered = recoverPartialMessage(result.getMessage());
+                if (recovered != null && recovered.hasToolUse()) {
+                    log.debug("Recovered partial tool use from max_tokens response");
+                    List<ToolUse> toolUses = recovered.getToolUses();
+                    List<ToolResult> toolResults = executeTools(toolUses, state);
+                    List<ContentBlock> resultBlocks = new ArrayList<>();
+                    for (ToolResult toolResult : toolResults) {
+                        resultBlocks.add(ContentBlock.fromToolResult(toolResult));
+                    }
+                    messages.add(new Message(Message.Role.USER, resultBlocks));
+                    continue;
+                }
+                return new EventLoopResult(result.getMessage(), result.getStopReason(), state.getMetrics(), state.getProperties());
+            }
+
             if (result.getStopReason() == StopReason.TOOL_USE) {
                 List<ToolUse> toolUses = result.getMessage().getToolUses();
                 List<ToolResult> toolResults = executeTools(toolUses, state);
@@ -92,6 +108,15 @@ public class EventLoop {
         log.warn("Event loop exceeded max cycles ({})", MAX_CYCLES);
         Message lastMessage = messages.isEmpty() ? null : messages.get(messages.size() - 1);
         return new EventLoopResult(lastMessage, StopReason.MAX_TOKENS, state.getMetrics(), state.getProperties());
+    }
+
+    public Iterator<StreamEvent> streamEvents(List<Message> messages, InvocationState state) {
+        StreamRequest request = StreamRequest.builder()
+                .messages(messages)
+                .toolSpecs(toolRegistry.getToolSpecs())
+                .systemPrompt(systemPrompt)
+                .build();
+        return model.stream(request);
     }
 
     private List<ToolResult> executeTools(List<ToolUse> toolUses, InvocationState state) {
@@ -123,5 +148,30 @@ public class EventLoop {
         }
 
         return results;
+    }
+
+    private Message recoverPartialMessage(Message message) {
+        if (message == null) return null;
+        List<ContentBlock> content = message.getContent();
+        if (content == null || content.isEmpty()) return null;
+
+        List<ContentBlock> validBlocks = new ArrayList<>();
+        for (ContentBlock block : content) {
+            if (block.isToolUse()) {
+                ToolUse tu = block.getToolUse();
+                if (tu.getName() != null && tu.getToolUseId() != null
+                        && toolRegistry.contains(tu.getName())) {
+                    if (tu.getInput() == null) {
+                        tu.setInput(java.util.Map.of());
+                    }
+                    validBlocks.add(block);
+                }
+            } else if (block.isText()) {
+                validBlocks.add(block);
+            }
+        }
+
+        if (validBlocks.isEmpty()) return null;
+        return new Message(message.getRole(), validBlocks);
     }
 }
