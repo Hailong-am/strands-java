@@ -19,8 +19,8 @@ dependencies {
     api 'com.fasterxml.jackson.core:jackson-annotations:2.17.0'
     api 'org.slf4j:slf4j-api:2.0.12'
 
-    // AWS SDK v2 for Bedrock
-    implementation platform('software.amazon.awssdk:bom:2.25.16')
+    // AWS SDK v2 for Bedrock (Converse API requires 2.26+)
+    implementation platform('software.amazon.awssdk:bom:2.28.0')
     implementation 'software.amazon.awssdk:bedrockruntime'
 
     testImplementation 'org.junit.jupiter:junit-jupiter:5.10.2'

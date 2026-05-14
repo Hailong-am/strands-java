@@ -5,15 +5,28 @@
 | # | Module | Status | Description |
 |---|--------|--------|-------------|
 | 1 | `types` | DONE | Core data types (Message, ContentBlock, ToolUse, ToolResult, ToolSpec, StreamEvent, etc.) |
-| 2 | `tool` | TODO | Tool interface, @Tool annotation, ToolRegistry, ToolExecutor |
-| 3 | `model` | TODO | Model interface, streaming contract |
-| 4 | `hook` | TODO | Hook system (event registry, hook providers, event types) |
-| 5 | `event` | TODO | Event loop (agentic loop, stream processing, retry) |
-| 6 | `agent` | TODO | Agent class, AgentResult, ConversationManager |
-| 7 | `model-bedrock` | TODO | BedrockModel implementation (AWS SDK) |
-| 8 | `session` | TODO | SessionManager interface and file-based impl |
-| 9 | `multiagent` | TODO | Multi-agent patterns (Swarm, Graph, Agent-as-Tool) |
-| 10 | `plugin` | TODO | Plugin system |
+| 2 | `tool` | DONE | Tool interface, @Tool annotation, ToolRegistry, ToolExecutor |
+| 3 | `model` | DONE | Model interface, streaming contract |
+| 4 | `hook` | DONE | Hook system (event registry, hook providers, event types) |
+| 5 | `event` | DONE | Event loop (agentic loop, stream processing, retry) |
+| 6 | `agent` | DONE | Agent class, AgentResult, ConversationManager |
+| 7 | `model-bedrock` | DONE | BedrockModel implementation (AWS SDK) |
+| 8 | `session` | DONE | SessionManager interface and file-based impl |
+| 9 | `multiagent` | DONE | Multi-agent patterns (Swarm, Graph, Agent-as-Tool) |
+| 10 | `plugin` | DONE | Plugin system |
+
+## Remaining Work
+
+| # | Task | Status | Description |
+|---|------|--------|-------------|
+| 11 | Tests | TODO | Unit tests for each module |
+| 12 | Integration test | TODO | End-to-end test with mock model |
+| 13 | OpenAI model | TODO | OpenAIModel provider |
+| 14 | Anthropic model | TODO | AnthropicModel provider |
+| 15 | MCP tools | TODO | MCP protocol tool integration |
+| 16 | Retry strategy | TODO | ModelRetryStrategy with backoff |
+| 17 | Structured output | TODO | JSON schema-based structured output |
+| 18 | Examples | TODO | Usage examples and documentation |
 
 ## Detailed Module Plans
 

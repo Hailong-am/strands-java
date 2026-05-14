@@ -9,17 +9,19 @@ import com.strands.types.ToolSpec;
 import com.strands.types.streaming.StreamEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
+import software.amazon.awssdk.core.document.Document;
+import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeAsyncClient;
 import software.amazon.awssdk.services.bedrockruntime.model.*;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 
 public class BedrockModel implements Model {
 
     private static final Logger log = LoggerFactory.getLogger(BedrockModel.class);
     private static final String DEFAULT_MODEL_ID = "us.anthropic.claude-sonnet-4-6-v1";
 
-    private final BedrockRuntimeClient client;
+    private final BedrockRuntimeAsyncClient client;
     private final ModelConfig config;
 
     public BedrockModel() {
@@ -27,10 +29,10 @@ public class BedrockModel implements Model {
     }
 
     public BedrockModel(String modelId) {
-        this(BedrockRuntimeClient.create(), modelId);
+        this(BedrockRuntimeAsyncClient.create(), modelId);
     }
 
-    public BedrockModel(BedrockRuntimeClient client, String modelId) {
+    public BedrockModel(BedrockRuntimeAsyncClient client, String modelId) {
         this.client = client;
         this.config = new ModelConfig(modelId);
     }
@@ -39,32 +41,55 @@ public class BedrockModel implements Model {
     public Iterator<StreamEvent> stream(StreamRequest request) {
         ConverseStreamRequest converseRequest = buildConverseRequest(request);
 
-        List<StreamEvent> events = new ArrayList<>();
+        List<StreamEvent> events = Collections.synchronizedList(new ArrayList<>());
         long startTime = System.currentTimeMillis();
 
         ConverseStreamResponseHandler handler = ConverseStreamResponseHandler.builder()
-                .onEventStream(stream -> {
-                    stream.subscribe(event -> {
-                        StreamEvent converted = convertEvent(event);
-                        if (converted != null) {
-                            synchronized (events) {
-                                events.add(converted);
+                .subscriber(ConverseStreamResponseHandler.Visitor.builder()
+                        .onMessageStart(e -> events.add(StreamEvent.messageStart("assistant")))
+                        .onContentBlockStart(e -> {
+                            int idx = e.contentBlockIndex();
+                            if (e.start() != null && e.start().toolUse() != null) {
+                                events.add(StreamEvent.contentBlockStart(idx, Map.of(
+                                        "toolUse", Map.of(
+                                                "toolUseId", e.start().toolUse().toolUseId(),
+                                                "name", e.start().toolUse().name()
+                                        ))));
+                            } else {
+                                events.add(StreamEvent.contentBlockStart(idx, Map.of()));
                             }
-                        }
-                    });
-                })
+                        })
+                        .onContentBlockDelta(e -> {
+                            int idx = e.contentBlockIndex();
+                            if (e.delta() != null && e.delta().text() != null) {
+                                events.add(StreamEvent.contentBlockDelta(idx, Map.of("text", e.delta().text())));
+                            } else if (e.delta() != null && e.delta().toolUse() != null) {
+                                events.add(StreamEvent.contentBlockDelta(idx, Map.of(
+                                        "toolUse", Map.of("input", e.delta().toolUse().input()))));
+                            }
+                        })
+                        .onContentBlockStop(e -> events.add(StreamEvent.contentBlockStop(e.contentBlockIndex())))
+                        .onMessageStop(e -> {
+                            String reason = e.stopReason() != null ? e.stopReasonAsString() : "end_turn";
+                            events.add(StreamEvent.messageStop(reason));
+                        })
+                        .onMetadata(e -> {
+                            long inputTokens = e.usage() != null ? e.usage().inputTokens() : 0;
+                            long outputTokens = e.usage() != null ? e.usage().outputTokens() : 0;
+                            long latency = e.metrics() != null ? e.metrics().latencyMs() : 0;
+                            events.add(StreamEvent.metadata(inputTokens, outputTokens, latency));
+                        })
+                        .build())
                 .onError(e -> log.error("Bedrock stream error", e))
                 .build();
 
-        client.converseStream(converseRequest, handler).join();
+        CompletableFuture<Void> future = client.converseStream(converseRequest, handler);
+        future.join();
 
-        long latency = System.currentTimeMillis() - startTime;
-
-        synchronized (events) {
-            boolean hasMetadata = events.stream().anyMatch(e -> e.getType() == StreamEvent.Type.METADATA);
-            if (!hasMetadata) {
-                events.add(StreamEvent.metadata(0, 0, latency));
-            }
+        long totalLatency = System.currentTimeMillis() - startTime;
+        boolean hasMetadata = events.stream().anyMatch(e -> e.getType() == StreamEvent.Type.METADATA);
+        if (!hasMetadata) {
+            events.add(StreamEvent.metadata(0, 0, totalLatency));
         }
 
         return events.iterator();
@@ -99,7 +124,7 @@ public class BedrockModel implements Model {
         }
 
         if (request.getToolSpecs() != null && !request.getToolSpecs().isEmpty()) {
-            List<software.amazon.awssdk.services.bedrockruntime.model.Tool> tools = convertToolSpecs(request.getToolSpecs());
+            List<Tool> tools = convertToolSpecs(request.getToolSpecs());
             builder.toolConfig(ToolConfiguration.builder().tools(tools).build());
         }
 
@@ -138,8 +163,7 @@ public class BedrockModel implements Model {
                             .toolUse(ToolUseBlock.builder()
                                     .toolUseId(block.getToolUse().getToolUseId())
                                     .name(block.getToolUse().getName())
-                                    .input(software.amazon.awssdk.core.document.Document.fromMap(
-                                            convertToDocumentMap(block.getToolUse().getInput())))
+                                    .input(Document.fromMap(convertToDocumentMap(block.getToolUse().getInput())))
                                     .build())
                             .build());
                 } else if (block.isToolResult()) {
@@ -168,16 +192,15 @@ public class BedrockModel implements Model {
         return result;
     }
 
-    private List<software.amazon.awssdk.services.bedrockruntime.model.Tool> convertToolSpecs(List<ToolSpec> specs) {
-        List<software.amazon.awssdk.services.bedrockruntime.model.Tool> tools = new ArrayList<>();
+    private List<Tool> convertToolSpecs(List<ToolSpec> specs) {
+        List<Tool> tools = new ArrayList<>();
         for (ToolSpec spec : specs) {
-            tools.add(software.amazon.awssdk.services.bedrockruntime.model.Tool.builder()
-                    .toolSpec(software.amazon.awssdk.services.bedrockruntime.model.ToolSpecification.builder()
+            tools.add(Tool.builder()
+                    .toolSpec(ToolSpecification.builder()
                             .name(spec.getName())
                             .description(spec.getDescription())
                             .inputSchema(ToolInputSchema.builder()
-                                    .json(software.amazon.awssdk.core.document.Document.fromMap(
-                                            convertToDocumentMap(spec.getInputSchema())))
+                                    .json(Document.fromMap(convertToDocumentMap(spec.getInputSchema())))
                                     .build())
                             .build())
                     .build());
@@ -186,9 +209,9 @@ public class BedrockModel implements Model {
     }
 
     @SuppressWarnings("unchecked")
-    private Map<String, software.amazon.awssdk.core.document.Document> convertToDocumentMap(Map<String, Object> map) {
+    private Map<String, Document> convertToDocumentMap(Map<String, Object> map) {
         if (map == null) return Map.of();
-        Map<String, software.amazon.awssdk.core.document.Document> result = new LinkedHashMap<>();
+        Map<String, Document> result = new LinkedHashMap<>();
         for (Map.Entry<String, Object> entry : map.entrySet()) {
             result.put(entry.getKey(), toDocument(entry.getValue()));
         }
@@ -196,67 +219,19 @@ public class BedrockModel implements Model {
     }
 
     @SuppressWarnings("unchecked")
-    private software.amazon.awssdk.core.document.Document toDocument(Object value) {
-        if (value == null) return software.amazon.awssdk.core.document.Document.fromNull();
-        if (value instanceof String) return software.amazon.awssdk.core.document.Document.fromString((String) value);
-        if (value instanceof Number) return software.amazon.awssdk.core.document.Document.fromNumber((Number) value);
-        if (value instanceof Boolean) return software.amazon.awssdk.core.document.Document.fromBoolean((Boolean) value);
-        if (value instanceof Map) return software.amazon.awssdk.core.document.Document.fromMap(convertToDocumentMap((Map<String, Object>) value));
-        if (value instanceof List) {
-            List<software.amazon.awssdk.core.document.Document> docs = new ArrayList<>();
-            for (Object item : (List<?>) value) {
+    private Document toDocument(Object value) {
+        if (value == null) return Document.fromNull();
+        if (value instanceof String s) return Document.fromString(s);
+        if (value instanceof Number n) return Document.fromNumber(n.toString());
+        if (value instanceof Boolean b) return Document.fromBoolean(b);
+        if (value instanceof Map<?, ?> m) return Document.fromMap(convertToDocumentMap((Map<String, Object>) m));
+        if (value instanceof List<?> l) {
+            List<Document> docs = new ArrayList<>();
+            for (Object item : l) {
                 docs.add(toDocument(item));
             }
-            return software.amazon.awssdk.core.document.Document.fromList(docs);
+            return Document.fromList(docs);
         }
-        return software.amazon.awssdk.core.document.Document.fromString(value.toString());
-    }
-
-    private StreamEvent convertEvent(ConverseStreamOutput event) {
-        if (event instanceof ContentBlockStartEvent e) {
-            int index = e.contentBlockIndex();
-            if (e.start() != null && e.start().toolUse() != null) {
-                return StreamEvent.contentBlockStart(index, Map.of(
-                        "toolUse", Map.of(
-                                "toolUseId", e.start().toolUse().toolUseId(),
-                                "name", e.start().toolUse().name()
-                        )));
-            }
-            return StreamEvent.contentBlockStart(index, Map.of());
-        }
-
-        if (event instanceof ContentBlockDeltaEvent e) {
-            int index = e.contentBlockIndex();
-            if (e.delta() != null && e.delta().text() != null) {
-                return StreamEvent.contentBlockDelta(index, Map.of("text", e.delta().text()));
-            }
-            if (e.delta() != null && e.delta().toolUse() != null) {
-                return StreamEvent.contentBlockDelta(index, Map.of(
-                        "toolUse", Map.of("input", e.delta().toolUse().input())));
-            }
-            return null;
-        }
-
-        if (event instanceof ContentBlockStopEvent e) {
-            return StreamEvent.contentBlockStop(e.contentBlockIndex());
-        }
-
-        if (event instanceof MessageStartEvent) {
-            return StreamEvent.messageStart("assistant");
-        }
-
-        if (event instanceof MessageStopEvent e) {
-            String reason = e.stopReason() != null ? e.stopReason().toString() : "end_turn";
-            return StreamEvent.messageStop(reason);
-        }
-
-        if (event instanceof ConverseStreamMetadataEvent e) {
-            long inputTokens = e.usage() != null ? e.usage().inputTokens() : 0;
-            long outputTokens = e.usage() != null ? e.usage().outputTokens() : 0;
-            long latency = e.metrics() != null ? e.metrics().latencyMs() : 0;
-            return StreamEvent.metadata(inputTokens, outputTokens, latency);
-        }
-
-        return null;
+        return Document.fromString(value.toString());
     }
 }
