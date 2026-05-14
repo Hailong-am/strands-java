@@ -161,6 +161,53 @@ public class MCPClient implements ToolProvider, AutoCloseable {
         }
     }
 
+    @SuppressWarnings("unchecked")
+    public List<Map<String, Object>> listPrompts() {
+        Map<String, Object> result = sendRequest(Map.of(
+                "jsonrpc", "2.0",
+                "method", "prompts/list",
+                "id", UUID.randomUUID().toString()
+        ));
+        Object prompts = result.get("prompts");
+        return prompts instanceof List ? (List<Map<String, Object>>) prompts : List.of();
+    }
+
+    @SuppressWarnings("unchecked")
+    public Map<String, Object> getPrompt(String name, Map<String, String> arguments) {
+        Map<String, Object> params = new HashMap<>();
+        params.put("name", name);
+        if (arguments != null) {
+            params.put("arguments", arguments);
+        }
+        return sendRequest(Map.of(
+                "jsonrpc", "2.0",
+                "method", "prompts/get",
+                "id", UUID.randomUUID().toString(),
+                "params", params
+        ));
+    }
+
+    @SuppressWarnings("unchecked")
+    public List<Map<String, Object>> listResources() {
+        Map<String, Object> result = sendRequest(Map.of(
+                "jsonrpc", "2.0",
+                "method", "resources/list",
+                "id", UUID.randomUUID().toString()
+        ));
+        Object resources = result.get("resources");
+        return resources instanceof List ? (List<Map<String, Object>>) resources : List.of();
+    }
+
+    @SuppressWarnings("unchecked")
+    public Map<String, Object> readResource(String uri) {
+        return sendRequest(Map.of(
+                "jsonrpc", "2.0",
+                "method", "resources/read",
+                "id", UUID.randomUUID().toString(),
+                "params", Map.of("uri", uri)
+        ));
+    }
+
     public String getServerInstructions() {
         return serverInstructions;
     }

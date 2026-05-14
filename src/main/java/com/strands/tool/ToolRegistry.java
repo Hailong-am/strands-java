@@ -50,6 +50,19 @@ public class ToolRegistry {
         return Collections.unmodifiableMap(tools);
     }
 
+    public List<Map<String, Object>> getToolDefinitions() {
+        List<Map<String, Object>> definitions = new ArrayList<>();
+        for (AgentTool tool : tools.values()) {
+            ToolSpec spec = tool.getToolSpec();
+            definitions.add(Map.of(
+                    "name", spec.getName(),
+                    "description", spec.getDescription(),
+                    "inputSchema", spec.getInputSchema() != null ? spec.getInputSchema() : Map.of()
+            ));
+        }
+        return definitions;
+    }
+
     public int size() {
         return tools.size();
     }

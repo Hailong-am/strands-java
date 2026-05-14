@@ -3,18 +3,21 @@ package com.strands.hook;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class HookRegistry {
 
     private static final Logger log = LoggerFactory.getLogger(HookRegistry.class);
     private final Map<Class<? extends HookEvent>, List<HookHandler<?>>> handlers = new ConcurrentHashMap<>();
+    private final Set<Class<? extends HookEvent>> reverseOrderEvents = ConcurrentHashMap.newKeySet();
 
     public <E extends HookEvent> void register(Class<E> eventType, HookHandler<E> handler) {
         handlers.computeIfAbsent(eventType, k -> new ArrayList<>()).add(handler);
+    }
+
+    public void setReverseOrder(Class<? extends HookEvent> eventType) {
+        reverseOrderEvents.add(eventType);
     }
 
     @SuppressWarnings("unchecked")
@@ -24,7 +27,13 @@ public class HookRegistry {
             return;
         }
 
-        for (HookHandler<?> handler : eventHandlers) {
+        List<HookHandler<?>> ordered = eventHandlers;
+        if (reverseOrderEvents.contains(event.getClass())) {
+            ordered = new ArrayList<>(eventHandlers);
+            Collections.reverse(ordered);
+        }
+
+        for (HookHandler<?> handler : ordered) {
             if (event.isConsumed()) {
                 break;
             }

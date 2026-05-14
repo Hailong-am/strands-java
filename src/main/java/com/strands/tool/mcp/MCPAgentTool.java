@@ -37,27 +37,40 @@ public class MCPAgentTool implements AgentTool {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public ToolResult invoke(ToolUse toolUse, ToolContext context) {
         try {
             Map<String, Object> result = mcpClient.callTool(mcpTool.getName(), toolUse.getInput());
 
             boolean isError = Boolean.TRUE.equals(result.get("isError"));
-            @SuppressWarnings("unchecked")
             List<Map<String, Object>> content = (List<Map<String, Object>>) result.get("content");
 
-            StringBuilder text = new StringBuilder();
+            List<ToolResultContent> resultContent = new java.util.ArrayList<>();
             if (content != null) {
                 for (Map<String, Object> block : content) {
-                    if ("text".equals(block.get("type"))) {
-                        if (text.length() > 0) text.append("\n");
-                        text.append(block.get("text"));
+                    String type = (String) block.get("type");
+                    if ("text".equals(type)) {
+                        resultContent.add(ToolResultContent.fromText((String) block.get("text")));
+                    } else if ("json".equals(type) || "structuredContent".equals(type)) {
+                        resultContent.add(ToolResultContent.fromJson(block.get("data")));
+                    } else if ("resource".equals(type)) {
+                        Map<String, Object> resource = (Map<String, Object>) block.get("resource");
+                        if (resource != null) {
+                            String resourceText = resource.containsKey("text")
+                                    ? (String) resource.get("text")
+                                    : resource.toString();
+                            resultContent.add(ToolResultContent.fromText(resourceText));
+                        }
                     }
                 }
             }
 
+            if (resultContent.isEmpty()) {
+                resultContent.add(ToolResultContent.fromText(""));
+            }
+
             ToolResult.Status status = isError ? ToolResult.Status.ERROR : ToolResult.Status.SUCCESS;
-            return new ToolResult(toolUse.getToolUseId(), status,
-                    List.of(ToolResultContent.fromText(text.toString())));
+            return new ToolResult(toolUse.getToolUseId(), status, resultContent);
         } catch (Exception e) {
             return ToolResult.error(toolUse.getToolUseId(), "MCP tool call failed: " + e.getMessage());
         }

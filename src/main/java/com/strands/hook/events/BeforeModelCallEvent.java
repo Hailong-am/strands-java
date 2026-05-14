@@ -8,9 +8,15 @@ import java.util.List;
 public class BeforeModelCallEvent extends HookEvent {
 
     private List<Message> messages;
+    private int projectedInputTokens;
 
     public BeforeModelCallEvent(List<Message> messages) {
         this.messages = messages;
+    }
+
+    public BeforeModelCallEvent(List<Message> messages, int projectedInputTokens) {
+        this.messages = messages;
+        this.projectedInputTokens = projectedInputTokens;
     }
 
     public List<Message> getMessages() {
@@ -19,5 +25,13 @@ public class BeforeModelCallEvent extends HookEvent {
 
     public void setMessages(List<Message> messages) {
         this.messages = messages;
+    }
+
+    public int getProjectedInputTokens() {
+        return projectedInputTokens;
+    }
+
+    public void setProjectedInputTokens(int projectedInputTokens) {
+        this.projectedInputTokens = projectedInputTokens;
     }
 }

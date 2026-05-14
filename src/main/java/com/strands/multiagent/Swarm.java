@@ -10,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.function.Consumer;
 
 public class Swarm implements MultiAgent {
 
@@ -19,6 +20,7 @@ public class Swarm implements MultiAgent {
     private final Map<String, Agent> agents;
     private final String startAgent;
     private final SharedMemory sharedMemory = new SharedMemory();
+    private final List<Consumer<SwarmEvent>> eventListeners = new ArrayList<>();
 
     public Swarm(Map<String, Agent> agents, String startAgent) {
         this.agents = agents;
@@ -29,6 +31,10 @@ public class Swarm implements MultiAgent {
 
     public SharedMemory getSharedMemory() {
         return sharedMemory;
+    }
+
+    public void addEventListener(Consumer<SwarmEvent> listener) {
+        eventListeners.add(listener);
     }
 
     @Override
@@ -44,13 +50,16 @@ public class Swarm implements MultiAgent {
             }
 
             log.debug("Swarm invoking agent: {}", currentAgentName);
+            emitEvent(SwarmEvent.agentStart(currentAgentName));
             lastResult = current.invoke(prompt);
+            emitEvent(SwarmEvent.agentStop(currentAgentName));
 
             String handoffTarget = current.getState().get("_handoff_target", String.class);
             if (handoffTarget != null) {
                 current.getState().remove("_handoff_target");
                 String handoffPrompt = current.getState().get("_handoff_prompt", String.class);
                 current.getState().remove("_handoff_prompt");
+                emitEvent(SwarmEvent.handoff(currentAgentName, handoffTarget));
                 currentAgentName = handoffTarget;
                 prompt = handoffPrompt != null ? handoffPrompt : lastResult.toString();
                 handoffs++;
@@ -60,6 +69,16 @@ public class Swarm implements MultiAgent {
         }
 
         return lastResult;
+    }
+
+    private void emitEvent(SwarmEvent event) {
+        for (Consumer<SwarmEvent> listener : eventListeners) {
+            try {
+                listener.accept(event);
+            } catch (Exception e) {
+                log.warn("Swarm event listener error", e);
+            }
+        }
     }
 
     private void registerHandoffTools() {
@@ -124,6 +143,39 @@ public class Swarm implements MultiAgent {
         for (Agent agent : agents.values()) {
             agent.getToolRegistry().register(readMemory);
             agent.getToolRegistry().register(writeMemory);
+        }
+    }
+
+    public Map<String, Object> serializeState() {
+        Map<String, Object> state = new LinkedHashMap<>();
+        state.put("sharedMemory", new LinkedHashMap<>(sharedMemory.getAll()));
+        Map<String, Map<String, Object>> agentStates = new LinkedHashMap<>();
+        for (Map.Entry<String, Agent> entry : agents.entrySet()) {
+            agentStates.put(entry.getKey(), entry.getValue().getState().toMap());
+        }
+        state.put("agentStates", agentStates);
+        return state;
+    }
+
+    @SuppressWarnings("unchecked")
+    public void deserializeState(Map<String, Object> state) {
+        if (state == null) return;
+
+        Object memoryData = state.get("sharedMemory");
+        if (memoryData instanceof Map) {
+            sharedMemory.clear();
+            ((Map<String, Object>) memoryData).forEach(sharedMemory::put);
+        }
+
+        Object agentStatesData = state.get("agentStates");
+        if (agentStatesData instanceof Map) {
+            Map<String, Map<String, Object>> agentStates = (Map<String, Map<String, Object>>) agentStatesData;
+            for (Map.Entry<String, Map<String, Object>> entry : agentStates.entrySet()) {
+                Agent agent = agents.get(entry.getKey());
+                if (agent != null) {
+                    entry.getValue().forEach((k, v) -> agent.getState().set(k, v));
+                }
+            }
         }
     }
 

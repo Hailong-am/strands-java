@@ -16,10 +16,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 public class GraphAgent implements MultiAgent {
@@ -30,7 +28,9 @@ public class GraphAgent implements MultiAgent {
     private final List<Edge> edges = new ArrayList<>();
     private final ExecutorService executor;
     private final HookRegistry hookRegistry;
+    private final List<Consumer<GraphEvent>> eventListeners = new ArrayList<>();
     private SessionManager sessionManager;
+    private long nodeTimeoutMs = 0;
     private volatile boolean interrupted;
     private String interruptedAtNode;
     private GraphState interruptedState;
@@ -54,6 +54,14 @@ public class GraphAgent implements MultiAgent {
 
     public HookRegistry getHookRegistry() {
         return hookRegistry;
+    }
+
+    public void setNodeTimeout(long timeoutMs) {
+        this.nodeTimeoutMs = timeoutMs;
+    }
+
+    public void addEventListener(Consumer<GraphEvent> listener) {
+        eventListeners.add(listener);
     }
 
     public void interrupt() {
@@ -106,12 +114,14 @@ public class GraphAgent implements MultiAgent {
             List<CompletableFuture<Void>> futures = new ArrayList<>();
             for (String nodeName : batch) {
                 futures.add(CompletableFuture.runAsync(() -> {
+                    emitEvent(GraphEvent.nodeStart(nodeName));
                     BeforeNodeCallEvent beforeEvent = new BeforeNodeCallEvent(nodeName, nodes.get(nodeName));
                     hookRegistry.emit(beforeEvent);
 
                     if (beforeEvent.isCancelled()) {
                         nodeResults.put(nodeName, NodeResult.failed(nodeName,
                                 new RuntimeException("Cancelled by hook")));
+                        emitEvent(GraphEvent.nodeStop(nodeName, false));
                         return;
                     }
 
@@ -125,16 +135,36 @@ public class GraphAgent implements MultiAgent {
                         graphState.setNodeOutput(nodeName, result.toString());
 
                         hookRegistry.emit(new AfterNodeCallEvent(nodeName, nr));
+                        emitEvent(GraphEvent.nodeStop(nodeName, true));
                     } catch (Exception e) {
                         log.error("Node {} failed", nodeName, e);
                         NodeResult nr = NodeResult.failed(nodeName, e);
                         nodeResults.put(nodeName, nr);
                         hookRegistry.emit(new AfterNodeCallEvent(nodeName, nr));
+                        emitEvent(GraphEvent.nodeStop(nodeName, false));
                     }
                 }, executor));
             }
 
-            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+            try {
+                if (nodeTimeoutMs > 0) {
+                    CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
+                            .get(nodeTimeoutMs, TimeUnit.MILLISECONDS);
+                } else {
+                    CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+                }
+            } catch (TimeoutException e) {
+                log.error("Node batch timed out after {}ms", nodeTimeoutMs);
+                for (String nodeName : batch) {
+                    if (!nodeResults.containsKey(nodeName)) {
+                        nodeResults.put(nodeName, NodeResult.failed(nodeName,
+                                new TimeoutException("Node timed out after " + nodeTimeoutMs + "ms")));
+                        emitEvent(GraphEvent.nodeStop(nodeName, false));
+                    }
+                }
+            } catch (Exception e) {
+                log.error("Node batch execution failed", e);
+            }
             completed.addAll(batch);
 
             for (Edge edge : edges) {
@@ -204,6 +234,16 @@ public class GraphAgent implements MultiAgent {
             }
         }
         return true;
+    }
+
+    private void emitEvent(GraphEvent event) {
+        for (Consumer<GraphEvent> listener : eventListeners) {
+            try {
+                listener.accept(event);
+            } catch (Exception e) {
+                log.warn("Event listener error", e);
+            }
+        }
     }
 
     private record Edge(String from, String to, Predicate<GraphState> condition) {
