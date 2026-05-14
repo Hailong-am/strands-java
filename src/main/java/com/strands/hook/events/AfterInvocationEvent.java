@@ -7,6 +7,7 @@ public class AfterInvocationEvent extends HookEvent {
     private final Object agent;
     private boolean resume;
     private String resumeInput;
+    private boolean reverseCallbacks;
 
     public AfterInvocationEvent(Object agent) {
         this.agent = agent;
@@ -30,5 +31,13 @@ public class AfterInvocationEvent extends HookEvent {
 
     public void setResumeInput(String resumeInput) {
         this.resumeInput = resumeInput;
+    }
+
+    public boolean isReverseCallbacks() {
+        return reverseCallbacks;
+    }
+
+    public void setReverseCallbacks(boolean reverseCallbacks) {
+        this.reverseCallbacks = reverseCallbacks;
     }
 }
