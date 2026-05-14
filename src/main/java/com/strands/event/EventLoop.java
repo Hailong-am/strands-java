@@ -119,7 +119,7 @@ public class EventLoop {
             AfterToolCallEvent afterEvent = new AfterToolCallEvent(toolUse, result);
             hookRegistry.emit(afterEvent);
 
-            results.add(result);
+            results.add(afterEvent.getResult());
         }
 
         return results;

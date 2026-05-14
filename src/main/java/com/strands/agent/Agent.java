@@ -11,6 +11,8 @@ import com.strands.hook.events.MessageAddedEvent;
 import com.strands.model.CacheConfig;
 import com.strands.model.Model;
 import com.strands.model.StreamHandler;
+import com.strands.plugin.Plugin;
+import com.strands.plugin.PluginRegistry;
 import com.strands.tool.*;
 import com.strands.tool.structured.SchemaGenerator;
 import com.strands.tool.structured.StructuredOutputTool;
@@ -40,6 +42,7 @@ public class Agent {
     private final ConversationManager conversationManager;
     private final ConcurrentInvocationMode concurrentInvocationMode;
     private final CacheConfig cacheConfig;
+    private final PluginRegistry pluginRegistry;
     private final AtomicBoolean invoking = new AtomicBoolean(false);
 
     private Agent(Builder builder) {
@@ -59,10 +62,12 @@ public class Agent {
                 ? builder.concurrentInvocationMode
                 : ConcurrentInvocationMode.THROW;
         this.cacheConfig = builder.cacheConfig;
+        this.pluginRegistry = new PluginRegistry();
 
         registerTools(builder.tools);
         registerToolProviders(builder.toolProviders);
         registerHookProviders(builder.hookProviders);
+        registerPlugins(builder.plugins);
         hookRegistry.registerProvider(conversationManager);
 
         hookRegistry.emit(new AgentInitializedEvent(this));
@@ -235,6 +240,15 @@ public class Agent {
         }
     }
 
+    private void registerPlugins(List<Plugin> plugins) {
+        if (plugins != null) {
+            for (Plugin plugin : plugins) {
+                pluginRegistry.register(plugin);
+            }
+            pluginRegistry.initializeAll(this, toolRegistry, hookRegistry);
+        }
+    }
+
     public static class Builder {
         private String agentId;
         private String name;
@@ -243,6 +257,7 @@ public class Agent {
         private List<AgentTool> tools;
         private List<Object> toolProviders;
         private List<HookProvider> hookProviders;
+        private List<Plugin> plugins;
         private ToolExecutor toolExecutor;
         private ConversationManager conversationManager;
         private ConcurrentInvocationMode concurrentInvocationMode;
@@ -285,6 +300,16 @@ public class Agent {
 
         public Builder hookProviders(HookProvider... providers) {
             this.hookProviders = List.of(providers);
+            return this;
+        }
+
+        public Builder plugins(Plugin... plugins) {
+            this.plugins = List.of(plugins);
+            return this;
+        }
+
+        public Builder plugins(List<Plugin> plugins) {
+            this.plugins = plugins;
             return this;
         }
 

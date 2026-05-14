@@ -7,7 +7,7 @@ import com.strands.types.ToolUse;
 public class AfterToolCallEvent extends HookEvent {
 
     private final ToolUse toolUse;
-    private final ToolResult result;
+    private ToolResult result;
     private boolean retry;
 
     public AfterToolCallEvent(ToolUse toolUse, ToolResult result) {
@@ -25,6 +25,10 @@ public class AfterToolCallEvent extends HookEvent {
 
     public ToolResult getResult() {
         return result;
+    }
+
+    public void setResult(ToolResult result) {
+        this.result = result;
     }
 
     public boolean isRetry() {
