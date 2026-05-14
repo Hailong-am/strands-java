@@ -2,9 +2,15 @@ package com.strands.types;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.util.List;
 
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ToolResult {
 
@@ -23,18 +29,10 @@ public class ToolResult {
         }
     }
 
+    @JsonProperty("toolUseId")
     private String toolUseId;
     private Status status;
     private List<ToolResultContent> content;
-
-    public ToolResult() {
-    }
-
-    public ToolResult(String toolUseId, Status status, List<ToolResultContent> content) {
-        this.toolUseId = toolUseId;
-        this.status = status;
-        this.content = content;
-    }
 
     public static ToolResult success(String toolUseId, String text) {
         return new ToolResult(toolUseId, Status.SUCCESS, List.of(ToolResultContent.fromText(text)));
@@ -42,30 +40,5 @@ public class ToolResult {
 
     public static ToolResult error(String toolUseId, String errorMessage) {
         return new ToolResult(toolUseId, Status.ERROR, List.of(ToolResultContent.fromText(errorMessage)));
-    }
-
-    @JsonProperty("toolUseId")
-    public String getToolUseId() {
-        return toolUseId;
-    }
-
-    public void setToolUseId(String toolUseId) {
-        this.toolUseId = toolUseId;
-    }
-
-    public Status getStatus() {
-        return status;
-    }
-
-    public void setStatus(Status status) {
-        this.status = status;
-    }
-
-    public List<ToolResultContent> getContent() {
-        return content;
-    }
-
-    public void setContent(List<ToolResultContent> content) {
-        this.content = content;
     }
 }

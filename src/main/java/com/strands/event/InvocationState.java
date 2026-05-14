@@ -1,23 +1,16 @@
 package com.strands.event;
 
 import com.strands.types.Metrics;
+import lombok.Getter;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+@Getter
 public class InvocationState {
 
-    private final Map<String, Object> properties;
-    private final Metrics metrics;
-
-    public InvocationState() {
-        this.properties = new ConcurrentHashMap<>();
-        this.metrics = new Metrics();
-    }
-
-    public Map<String, Object> getProperties() {
-        return properties;
-    }
+    private final Map<String, Object> properties = new ConcurrentHashMap<>();
+    private final Metrics metrics = new Metrics();
 
     public void set(String key, Object value) {
         properties.put(key, value);
@@ -26,9 +19,5 @@ public class InvocationState {
     @SuppressWarnings("unchecked")
     public <T> T get(String key, Class<T> type) {
         return (T) properties.get(key);
-    }
-
-    public Metrics getMetrics() {
-        return metrics;
     }
 }

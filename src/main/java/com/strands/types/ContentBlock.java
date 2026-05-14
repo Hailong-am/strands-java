@@ -2,15 +2,20 @@ package com.strands.types;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Getter;
 
+@Getter
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ContentBlock {
 
     private String text;
+    @JsonProperty("toolUse")
     private ToolUse toolUse;
+    @JsonProperty("toolResult")
     private ToolResult toolResult;
     private ImageContent image;
     private DocumentContent document;
+    @JsonProperty("reasoningContent")
     private ReasoningContent reasoningContent;
 
     public static ContentBlock fromText(String text) {
@@ -47,33 +52,6 @@ public class ContentBlock {
         ContentBlock block = new ContentBlock();
         block.reasoningContent = reasoning;
         return block;
-    }
-
-    public String getText() {
-        return text;
-    }
-
-    @JsonProperty("toolUse")
-    public ToolUse getToolUse() {
-        return toolUse;
-    }
-
-    @JsonProperty("toolResult")
-    public ToolResult getToolResult() {
-        return toolResult;
-    }
-
-    public ImageContent getImage() {
-        return image;
-    }
-
-    public DocumentContent getDocument() {
-        return document;
-    }
-
-    @JsonProperty("reasoningContent")
-    public ReasoningContent getReasoningContent() {
-        return reasoningContent;
     }
 
     public boolean isText() {

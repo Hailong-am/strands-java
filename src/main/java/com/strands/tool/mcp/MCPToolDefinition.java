@@ -1,7 +1,12 @@
 package com.strands.tool.mcp;
 
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+
 import java.util.Map;
 
+@Getter
+@AllArgsConstructor
 public class MCPToolDefinition {
 
     private final String name;
@@ -11,28 +16,5 @@ public class MCPToolDefinition {
 
     public MCPToolDefinition(String name, String description, Map<String, Object> inputSchema) {
         this(name, description, inputSchema, null);
-    }
-
-    public MCPToolDefinition(String name, String description, Map<String, Object> inputSchema, Map<String, Object> outputSchema) {
-        this.name = name;
-        this.description = description;
-        this.inputSchema = inputSchema;
-        this.outputSchema = outputSchema;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public Map<String, Object> getInputSchema() {
-        return inputSchema;
-    }
-
-    public Map<String, Object> getOutputSchema() {
-        return outputSchema;
     }
 }

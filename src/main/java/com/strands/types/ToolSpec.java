@@ -2,47 +2,20 @@ package com.strands.types;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.util.Map;
 
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ToolSpec {
 
     private String name;
     private String description;
-    private Map<String, Object> inputSchema;
-
-    public ToolSpec() {
-    }
-
-    public ToolSpec(String name, String description, Map<String, Object> inputSchema) {
-        this.name = name;
-        this.description = description;
-        this.inputSchema = inputSchema;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
     @JsonProperty("inputSchema")
-    public Map<String, Object> getInputSchema() {
-        return inputSchema;
-    }
-
-    public void setInputSchema(Map<String, Object> inputSchema) {
-        this.inputSchema = inputSchema;
-    }
+    private Map<String, Object> inputSchema;
 }

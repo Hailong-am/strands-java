@@ -1,10 +1,14 @@
 package com.strands.types;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.util.ArrayList;
 import java.util.List;
 
+@Getter
+@Setter
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class Message {
 
@@ -12,14 +16,11 @@ public class Message {
         USER("user"),
         ASSISTANT("assistant");
 
+        @Getter
         private final String value;
 
         Role(String value) {
             this.value = value;
-        }
-
-        public String getValue() {
-            return value;
         }
     }
 
@@ -49,22 +50,6 @@ public class Message {
             blocks.add(ContentBlock.fromToolResult(result));
         }
         return new Message(Role.USER, blocks);
-    }
-
-    public Role getRole() {
-        return role;
-    }
-
-    public void setRole(Role role) {
-        this.role = role;
-    }
-
-    public List<ContentBlock> getContent() {
-        return content;
-    }
-
-    public void setContent(List<ContentBlock> content) {
-        this.content = content;
     }
 
     public String getTextContent() {

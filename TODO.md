@@ -40,16 +40,16 @@
 
 ## Future Enhancements
 
-| # | Task | Description |
-|---|------|-------------|
-| 1 | More tests | Unit tests for each module, integration tests |
-| 2 | Examples | Usage examples (simple agent, tool use, multi-agent) |
-| 3 | Gemini model | GeminiModel provider |
-| 4 | LiteLLM model | LiteLLMModel provider |
-| 5 | S3 full impl | Wire S3SessionManager to actual AWS S3 client |
-| 6 | MCP stdio | StdioMCPTransport implementation |
-| 7 | MCP SSE | SSEMCPTransport implementation |
-| 8 | Lombok refactor | Apply Lombok to all existing POJOs |
+| # | Task | Status | Description |
+|---|------|--------|-------------|
+| 1 | More tests | TODO | Unit tests for each module, integration tests |
+| 2 | Examples | TODO | Usage examples (simple agent, tool use, multi-agent) |
+| 3 | Gemini model | TODO | GeminiModel provider |
+| 4 | LiteLLM model | TODO | LiteLLMModel provider |
+| 5 | S3 full impl | DONE | Wire S3SessionManager to actual AWS S3 client |
+| 6 | MCP stdio | DONE | StdioMCPTransport implementation |
+| 7 | MCP SSE | DONE | SSEMCPTransport implementation |
+| 8 | Lombok refactor | DONE | Apply Lombok to all existing POJOs |
 
 ## Detailed Module Plans
 

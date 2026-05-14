@@ -1,7 +1,9 @@
 package com.strands.types;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import lombok.Getter;
 
+@Getter
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ToolResultContent {
 
@@ -18,13 +20,5 @@ public class ToolResultContent {
         ToolResultContent content = new ToolResultContent();
         content.json = json;
         return content;
-    }
-
-    public String getText() {
-        return text;
-    }
-
-    public Object getJson() {
-        return json;
     }
 }

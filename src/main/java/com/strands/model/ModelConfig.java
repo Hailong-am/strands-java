@@ -1,10 +1,15 @@
 package com.strands.model;
 
+import lombok.Getter;
+import lombok.Setter;
+
 import java.util.HashMap;
 import java.util.Map;
 
+@Getter
 public class ModelConfig {
 
+    @Setter
     private String modelId;
     private final Map<String, Object> parameters;
 
@@ -15,18 +20,6 @@ public class ModelConfig {
     public ModelConfig(String modelId) {
         this.modelId = modelId;
         this.parameters = new HashMap<>();
-    }
-
-    public String getModelId() {
-        return modelId;
-    }
-
-    public void setModelId(String modelId) {
-        this.modelId = modelId;
-    }
-
-    public Map<String, Object> getParameters() {
-        return parameters;
     }
 
     public void setParameter(String key, Object value) {

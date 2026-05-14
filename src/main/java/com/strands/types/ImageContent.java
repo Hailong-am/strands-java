@@ -1,34 +1,16 @@
 package com.strands.types;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ImageContent {
 
     private String format;
     private byte[] source;
-
-    public ImageContent() {
-    }
-
-    public ImageContent(String format, byte[] source) {
-        this.format = format;
-        this.source = source;
-    }
-
-    public String getFormat() {
-        return format;
-    }
-
-    public void setFormat(String format) {
-        this.format = format;
-    }
-
-    public byte[] getSource() {
-        return source;
-    }
-
-    public void setSource(byte[] source) {
-        this.source = source;
-    }
 }
