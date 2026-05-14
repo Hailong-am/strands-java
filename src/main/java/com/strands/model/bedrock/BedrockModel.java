@@ -19,7 +19,7 @@ import java.util.concurrent.CompletableFuture;
 public class BedrockModel implements Model {
 
     private static final Logger log = LoggerFactory.getLogger(BedrockModel.class);
-    private static final String DEFAULT_MODEL_ID = "us.anthropic.claude-sonnet-4-6-v1";
+    private static final String DEFAULT_MODEL_ID = "us.anthropic.claude-sonnet-4-6";
 
     private final BedrockRuntimeAsyncClient client;
     private final ModelConfig config;

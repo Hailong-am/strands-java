@@ -55,9 +55,10 @@ public class StreamProcessor {
                     if (delta != null) {
                         if (delta.containsKey("text")) {
                             String text = (String) delta.get("text");
-                            if (currentText != null) {
-                                currentText.append(text);
+                            if (currentText == null) {
+                                currentText = new StringBuilder();
                             }
+                            currentText.append(text);
                             if (handler != null) {
                                 handler.onTextDelta(text);
                             }
@@ -91,6 +92,13 @@ public class StreamProcessor {
                     break;
 
                 case MESSAGE_STOP:
+                    if (currentText != null) {
+                        String pendingText = currentText.toString();
+                        if (!pendingText.isEmpty()) {
+                            contentBlocks.add(ContentBlock.fromText(pendingText));
+                        }
+                        currentText = null;
+                    }
                     String reason = (String) data.get("stopReason");
                     if (reason != null) {
                         stopReason = StopReason.fromValue(reason);
