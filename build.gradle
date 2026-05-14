@@ -19,6 +19,12 @@ dependencies {
     api 'com.fasterxml.jackson.core:jackson-annotations:2.17.0'
     api 'org.slf4j:slf4j-api:2.0.12'
 
+    // Lombok
+    compileOnly 'org.projectlombok:lombok:1.18.32'
+    annotationProcessor 'org.projectlombok:lombok:1.18.32'
+    testCompileOnly 'org.projectlombok:lombok:1.18.32'
+    testAnnotationProcessor 'org.projectlombok:lombok:1.18.32'
+
     // AWS SDK v2 for Bedrock (Converse API requires 2.26+)
     implementation platform('software.amazon.awssdk:bom:2.28.0')
     implementation 'software.amazon.awssdk:bedrockruntime'
