@@ -1,0 +1,28 @@
+plugins {
+    id 'java-library'
+}
+
+group = 'com.strands'
+version = '0.1.0-SNAPSHOT'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    api 'com.fasterxml.jackson.core:jackson-databind:2.17.0'
+    api 'com.fasterxml.jackson.core:jackson-annotations:2.17.0'
+    api 'org.slf4j:slf4j-api:2.0.12'
+
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.10.2'
+    testRuntimeOnly 'org.slf4j:slf4j-simple:2.0.12'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
