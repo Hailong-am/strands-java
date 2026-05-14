@@ -33,7 +33,7 @@ public class Agent {
     private final String agentId;
     private final String name;
     private final Model model;
-    private final String systemPrompt;
+    private String systemPrompt;
     private final List<Message> messages;
     private final AgentState state;
     private final ToolRegistry toolRegistry;
@@ -190,6 +190,10 @@ public class Agent {
 
     public String getSystemPrompt() {
         return systemPrompt;
+    }
+
+    public void setSystemPrompt(String systemPrompt) {
+        this.systemPrompt = systemPrompt;
     }
 
     public List<Message> getMessages() {
