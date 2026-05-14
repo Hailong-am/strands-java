@@ -15,18 +15,41 @@
 | 9 | `multiagent` | DONE | Multi-agent patterns (Swarm, Graph, Agent-as-Tool) |
 | 10 | `plugin` | DONE | Plugin system |
 
-## Remaining Work
+## Additional Modules (Full Python SDK Parity)
 
-| # | Task | Status | Description |
-|---|------|--------|-------------|
-| 11 | Tests | TODO | Unit tests for each module |
-| 12 | Integration test | TODO | End-to-end test with mock model |
-| 13 | OpenAI model | TODO | OpenAIModel provider |
-| 14 | Anthropic model | TODO | AnthropicModel provider |
-| 15 | MCP tools | TODO | MCP protocol tool integration |
-| 16 | Retry strategy | TODO | ModelRetryStrategy with backoff |
-| 17 | Structured output | TODO | JSON schema-based structured output |
-| 18 | Examples | TODO | Usage examples and documentation |
+| # | Module | Status | Description |
+|---|--------|--------|-------------|
+| 11 | `model-openai` | DONE | OpenAIModel with SSE streaming |
+| 12 | `model-anthropic` | DONE | AnthropicModel with native streaming |
+| 13 | `model-ollama` | DONE | OllamaModel with NDJSON streaming |
+| 14 | `tool-mcp` | DONE | MCPClient, MCPTransport, MCPAgentTool |
+| 15 | `tool-structured` | DONE | StructuredOutputTool with validation |
+| 16 | `interrupt` | DONE | Interrupt/InterruptState for pause/resume |
+| 17 | `exceptions` | DONE | Full exception hierarchy |
+| 18 | `callback-handler` | DONE | Printing, Composite, Null handlers |
+| 19 | `retry` | DONE | ModelRetryStrategy with exponential backoff |
+| 20 | `telemetry` | DONE | Tracer, EventLoopMetrics |
+| 21 | `guardrails` | DONE | GuardrailConfig, GuardrailAssessment types |
+| 22 | `citations` | DONE | Citation, CitationLocation (sealed) |
+| 23 | `a2a` | DONE | Agent-to-agent protocol (server, executor) |
+| 24 | `session-s3` | DONE | S3SessionManager skeleton |
+| 25 | `session-repo` | DONE | RepositorySessionManager with SPI |
+| 26 | `summarizing-cm` | DONE | SummarizingConversationManager |
+| 27 | `typed-events` | DONE | TypedEvent hierarchy for streaming |
+| 28 | `tool-utils` | DONE | ToolValidator, ToolLoader |
+
+## Future Enhancements
+
+| # | Task | Description |
+|---|------|-------------|
+| 1 | More tests | Unit tests for each module, integration tests |
+| 2 | Examples | Usage examples (simple agent, tool use, multi-agent) |
+| 3 | Gemini model | GeminiModel provider |
+| 4 | LiteLLM model | LiteLLMModel provider |
+| 5 | S3 full impl | Wire S3SessionManager to actual AWS S3 client |
+| 6 | MCP stdio | StdioMCPTransport implementation |
+| 7 | MCP SSE | SSEMCPTransport implementation |
+| 8 | Lombok refactor | Apply Lombok to all existing POJOs |
 
 ## Detailed Module Plans
 
