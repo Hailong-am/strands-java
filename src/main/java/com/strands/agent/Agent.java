@@ -7,6 +7,7 @@ import com.strands.hook.HookProvider;
 import com.strands.hook.HookRegistry;
 import com.strands.hook.events.AfterInvocationEvent;
 import com.strands.hook.events.AgentInitializedEvent;
+import com.strands.hook.events.BeforeInvocationEvent;
 import com.strands.hook.events.MessageAddedEvent;
 import com.strands.model.CacheConfig;
 import com.strands.model.Model;
@@ -16,15 +17,13 @@ import com.strands.plugin.PluginRegistry;
 import com.strands.tool.*;
 import com.strands.tool.structured.SchemaGenerator;
 import com.strands.tool.structured.StructuredOutputTool;
+import com.strands.session.Snapshot;
 import com.strands.types.ContentBlock;
 import com.strands.types.Message;
 import com.strands.types.exceptions.ConcurrencyException;
 import com.strands.types.exceptions.StructuredOutputException;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -44,6 +43,7 @@ public class Agent {
     private final CacheConfig cacheConfig;
     private final PluginRegistry pluginRegistry;
     private final AtomicBoolean invoking = new AtomicBoolean(false);
+    private volatile boolean cancelled;
 
     private Agent(Builder builder) {
         this.agentId = builder.agentId != null ? builder.agentId : UUID.randomUUID().toString();
@@ -83,7 +83,12 @@ public class Agent {
 
     public AgentResult invoke(String prompt, StreamHandler handler) {
         acquireInvocationLock();
+        cancelled = false;
         try {
+            BeforeInvocationEvent beforeInvocation = new BeforeInvocationEvent(this, prompt, messages);
+            hookRegistry.emit(beforeInvocation);
+            prompt = beforeInvocation.getPrompt();
+
             Message userMessage = Message.user(prompt);
             addMessage(userMessage);
 
@@ -156,6 +161,35 @@ public class Agent {
 
     public AgentTool asTool(String toolName, String description) {
         return com.strands.multiagent.AgentAsTool.wrap(this, toolName, description);
+    }
+
+    public void cancel() {
+        this.cancelled = true;
+    }
+
+    public boolean isCancelled() {
+        return cancelled;
+    }
+
+    public Snapshot takeSnapshot() {
+        return Snapshot.take(this);
+    }
+
+    public Snapshot takeSnapshot(String preset, Set<String> include, Set<String> exclude) {
+        return Snapshot.take(this, preset, include, exclude);
+    }
+
+    public void loadSnapshot(Snapshot snapshot) {
+        if (snapshot.getMessages() != null) {
+            messages.clear();
+            messages.addAll(snapshot.getMessages());
+        }
+        if (snapshot.getState() != null) {
+            state.loadFrom(snapshot.getState());
+        }
+        if (snapshot.getSystemPrompt() != null) {
+            this.systemPrompt = snapshot.getSystemPrompt();
+        }
     }
 
     public void addMessage(Message message) {

@@ -65,7 +65,16 @@ public class Tracer {
         span.end();
     }
 
+    public Span startSpan(String name) {
+        return new Span(name, null, null);
+    }
+
     public static class Span {
+        public static final Span NOOP = new Span("noop", null, null) {
+            @Override public void setAttribute(String key, Object value) {}
+            @Override public void end() {}
+        };
+
         private final String name;
         private final String spanId;
         private final long startTime;

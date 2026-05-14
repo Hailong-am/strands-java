@@ -15,6 +15,7 @@ public class ContentBlock {
     private ToolResult toolResult;
     private ImageContent image;
     private DocumentContent document;
+    private VideoContent video;
     @JsonProperty("reasoningContent")
     private ReasoningContent reasoningContent;
 
@@ -45,6 +46,12 @@ public class ContentBlock {
     public static ContentBlock fromDocument(DocumentContent document) {
         ContentBlock block = new ContentBlock();
         block.document = document;
+        return block;
+    }
+
+    public static ContentBlock fromVideo(VideoContent video) {
+        ContentBlock block = new ContentBlock();
+        block.video = video;
         return block;
     }
 
