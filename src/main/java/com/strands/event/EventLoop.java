@@ -86,12 +86,12 @@ public class EventLoop {
                 continue;
             }
 
-            return new EventLoopResult(result.getMessage(), result.getStopReason(), state.getMetrics());
+            return new EventLoopResult(result.getMessage(), result.getStopReason(), state.getMetrics(), state.getProperties());
         }
 
         log.warn("Event loop exceeded max cycles ({})", MAX_CYCLES);
         Message lastMessage = messages.isEmpty() ? null : messages.get(messages.size() - 1);
-        return new EventLoopResult(lastMessage, StopReason.MAX_TOKENS, state.getMetrics());
+        return new EventLoopResult(lastMessage, StopReason.MAX_TOKENS, state.getMetrics(), state.getProperties());
     }
 
     private List<ToolResult> executeTools(List<ToolUse> toolUses, InvocationState state) {

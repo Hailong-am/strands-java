@@ -43,13 +43,18 @@
 | # | Task | Status | Description |
 |---|------|--------|-------------|
 | 1 | More tests | TODO | Unit tests for each module, integration tests |
-| 2 | Examples | TODO | Usage examples (simple agent, tool use, multi-agent) |
-| 3 | Gemini model | TODO | GeminiModel provider |
+| 2 | Examples | DONE | Usage examples (simple, streaming, tool use, structured output, async) |
+| 3 | Gemini model | DONE | GeminiModel provider (SSE streaming) |
 | 4 | LiteLLM model | TODO | LiteLLMModel provider |
 | 5 | S3 full impl | DONE | Wire S3SessionManager to actual AWS S3 client |
 | 6 | MCP stdio | DONE | StdioMCPTransport implementation |
 | 7 | MCP SSE | DONE | SSEMCPTransport implementation |
 | 8 | Lombok refactor | DONE | Apply Lombok to all existing POJOs |
+| 9 | Structured output | DONE | Agent.structuredOutput(Class, prompt) with schema generation |
+| 10 | Async support | DONE | Agent.invokeAsync() / structuredOutputAsync() via CompletableFuture |
+| 11 | Concurrency guard | DONE | ConcurrentInvocationMode (THROW / UNSAFE_REENTRANT) |
+| 12 | CacheConfig | DONE | Provider-agnostic prompt caching config |
+| 13 | Agent.asTool() | DONE | Convenience method to wrap agent as a tool |
 
 ## Detailed Module Plans
 
